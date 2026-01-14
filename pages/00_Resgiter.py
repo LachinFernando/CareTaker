@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import os
+import time
 
 from utils import (
     fetch_and_check_parent_registration,
