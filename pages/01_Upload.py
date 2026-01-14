@@ -21,7 +21,7 @@ try:
     if not os.path.exists(parent_folder_id):
         os.makedirs(parent_folder_id)
 except Exception as e:
-    st.error("Error creating parent folder!")
+    st.error("Error creating parent folder! No parent folder or parent registered!")
     st.stop()
 
 # title for uploading

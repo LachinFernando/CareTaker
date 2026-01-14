@@ -35,7 +35,7 @@ try:
         st.markdown("⚠️ Please upload documents to chat")
         st.stop()
 except Exception as e:
-    st.error("Error checking parent folder!")
+    st.error("Error checking parent folder! No parent folder or parent registered!")
     st.stop()
 
 # File selection with better styling
