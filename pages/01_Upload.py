@@ -17,8 +17,12 @@ except Exception as e:
     st.stop()
 
 # check if path is exists
-if not os.path.exists(parent_folder_id):
-    os.makedirs(parent_folder_id)
+try:
+    if not os.path.exists(parent_folder_id):
+        os.makedirs(parent_folder_id)
+except Exception as e:
+    st.error("Error creating parent folder!")
+    st.stop()
 
 # title for uploading
 st.title("🏥 CareTaker Upload")

@@ -29,9 +29,13 @@ except Exception as e:
     st.stop()
 
 # check if path is exists
-if not os.path.exists(parent_folder_id):
-    # cannot chat as no documents are uploaded
-    st.markdown("⚠️ Please upload documents to chat")
+try:
+    if not os.path.exists(parent_folder_id):
+        # cannot chat as no documents are uploaded
+        st.markdown("⚠️ Please upload documents to chat")
+        st.stop()
+except Exception as e:
+    st.error("Error checking parent folder!")
     st.stop()
 
 # File selection with better styling
