@@ -10,7 +10,11 @@ if not st.user.is_logged_in:
     st.stop()
 
 # get the parent member table
-parent_folder_id = fetch_and_check_parent_member_table(st.user.email)[1]
+try:
+    parent_folder_id = fetch_and_check_parent_member_table(st.user.email)[1]
+except Exception as e:
+    st.error("Error fetching parent member table! No parent folder or parent registered!")
+    st.stop()
 
 # check if path is exists
 if not os.path.exists(parent_folder_id):
