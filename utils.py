@@ -108,16 +108,15 @@ def fetch_and_check_member_exists(email):
         return (False, None)
 
 
-@st.cache_data
 def fetch_and_check_parent_member_table(email):
     try:
         if os.path.exists(DB_MEMBER_PARENT_NAME):
             df = pd.read_csv(DB_MEMBER_PARENT_NAME)
-            id = df[df["parent_email"] == email]["id"].values[0]
-            if not id:
-                id = df[df["member_email"] == email].values[0]
-            if id:
-                return (True, id)
+            id_ = df[df["parent_email"] == email]
+            if id_.empty:
+                id_ = df[df["member_email"] == email]["id"].values[0]
+            if id_:
+                return (True, id_)
             else:
                 return (False, None)
         else:
