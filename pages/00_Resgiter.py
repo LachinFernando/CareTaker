@@ -32,11 +32,13 @@ if fetch_and_check_parent_registration(st.user.email)[0]:
     # diplay the info in a table
     with st.sidebar:
         user_details = fetch_and_check_parent_registration(st.user.email)[1]
+        print("User details:", user_details)
         st.subheader("User Details")
         st.markdown("**User Name:** " + user_details[0])
         st.markdown("**Primary Doctor:** " + user_details[1])
         st.markdown("**Contact Email:** " + user_details[2])
-        st.markdown("**Other Doctors:** " + user_details[3])
+        if pd.notna(user_details[3]):
+            st.markdown("**Other Doctors:** " + user_details[3])
         st.markdown("**Emergency Contact:** " + user_details[4])
 
 # check if the user is a member
