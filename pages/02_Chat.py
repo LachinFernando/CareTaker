@@ -4,7 +4,11 @@ from openai import OpenAI
 
 from llm import streaming_question_answering, streaming_pdf_explanation, QA_MODEL, image_description_generator
 from llm import encode_image, IMAGE_INSTRUCTIONS
-from utils import fetch_and_check_parent_member_table
+from db_utils import fetch_parent_id_from_member_parent
+from storage_utils import directory_exists, list_files_in_directory, get_public_url, download_from_public_url
+
+
+REMOTE_PREFIX = "upload"
 
 
 def onchange_selecbox():
@@ -23,14 +27,15 @@ st.markdown("*Ask questions about your medical documents and get AI-powered insi
 
 # get the parent member table
 try:
-    parent_folder_id = fetch_and_check_parent_member_table(st.user.email)[1]
+    parent_folder_id = fetch_parent_id_from_member_parent(st.user.email)
+    print("Parent folder ID:", parent_folder_id)
 except Exception as e:
     st.error("Error fetching parent member table! No parent folder or parent registered!")
     st.stop()
 
 # check if path is exists
 try:
-    if not os.path.exists(parent_folder_id):
+    if not directory_exists(f"{REMOTE_PREFIX}/{parent_folder_id}"):
         # cannot chat as no documents are uploaded
         st.markdown("⚠️ Please upload documents to chat")
         st.stop()
@@ -42,7 +47,7 @@ except Exception as e:
 st.markdown("### 📁 Select Medical Document")
 selected_file = st.selectbox(
     "Choose a document to chat with:", 
-    os.listdir(parent_folder_id), 
+    list_files_in_directory(f"{REMOTE_PREFIX}/{parent_folder_id}"), 
     index=None,
     help="Select a medical document to ask questions about",
     on_change=onchange_selecbox
@@ -64,14 +69,22 @@ if not st.session_state.messages:
     # check the selected file type
     if selected_file.endswith(".pdf"):
         select_image = False
-        pdf_path = os.path.join(parent_folder_id, selected_file)
+        pdf_path = f"{REMOTE_PREFIX}/{parent_folder_id}/{selected_file}"
+        pdf_url = get_public_url(pdf_path)
+        # download the pdf to a temporary file
+        temp_pdf_path = f"/tmp/{selected_file}"
+        download_from_public_url(pdf_url, temp_pdf_path)
         with st.spinner("📄 Analyzing PDF content..."):
-            user_query, pdf_explanation = streaming_pdf_explanation(pdf_path)
+            user_query, pdf_explanation = streaming_pdf_explanation(temp_pdf_path)
         st.session_state.messages.append({"role": "user", "content": user_query})
         st.session_state.messages.append({"role": "assistant", "content": pdf_explanation})
     else:
         select_image = True
-        image_path = os.path.join(parent_folder_id, selected_file)
+        image_path = f"{REMOTE_PREFIX}/{parent_folder_id}/{selected_file}"
+        image_url = get_public_url(image_path)
+        # download the image to a temporary file
+        temp_image_path = f"/tmp/{selected_file}"
+        download_from_public_url(image_url, temp_image_path)
         with st.spinner("🖼️ Analyzing image content..."):
             # user_image_message, image_description = image_description_generator(image_path)
             api_message_content = {
@@ -81,7 +94,7 @@ if not st.session_state.messages:
                                 {
                                     "type": "image_url",
                                     "image_url": {
-                                        "url": f"data:image/jpeg;base64,{encode_image(image_path)}",
+                                        "url": f"data:image/jpeg;base64,{encode_image(temp_image_path)}",
                                     }
                                 },
                             ],
