@@ -3,14 +3,7 @@ import pandas as pd
 import os
 import time
 
-from utils import (
-    fetch_and_check_parent_registration,
-    fetch_and_check_member_exists,
-    save_parent_registration,
-    save_member_information,
-    parent_member_table,
-    fetch_and_check_parent_member_table
-)
+from db_utils import insert_data, fetch_parent_user, fetch_member_user
 
 
 # session state
@@ -26,23 +19,22 @@ if not st.user.is_logged_in:
     st.markdown("⚠️ Please login to register a new user")
     st.stop()
 
+parent_user = fetch_parent_user(st.user.email)
 # check if the user is already registered
-if fetch_and_check_parent_registration(st.user.email)[0]:
+if parent_user:
     st.session_state.is_parent_registered = True
     # diplay the info in a table
     with st.sidebar:
-        user_details = fetch_and_check_parent_registration(st.user.email)[1]
-        print("User details:", user_details)
         st.subheader("User Details")
-        st.markdown("**User Name:** " + user_details[0])
-        st.markdown("**Primary Doctor:** " + user_details[1])
-        st.markdown("**Contact Email:** " + user_details[2])
-        if pd.notna(user_details[3]):
-            st.markdown("**Other Doctors:** " + user_details[3])
-        st.markdown("**Emergency Contact:** " + user_details[4])
+        st.markdown("**User Name:** " + parent_user["parent_name"])
+        st.markdown("**Primary Doctor:** " + parent_user["primary_doctor"])
+        st.markdown("**Contact Email:** " + parent_user["parent_email"])
+        if parent_user.get("other_doctors", None):
+            st.markdown("**Other Doctors:** " + parent_user["other_doctors"])
+        st.markdown("**Emergency Contact:** " + parent_user["emergency_contact"])
 
 # check if the user is a member
-if fetch_and_check_member_exists(st.user.email)[0]:
+if fetch_member_user(st.user.email):
     st.session_state.is_member_registered = True
 
 # title for registering
@@ -74,8 +66,15 @@ with family_tab:
                 # member name and emai are compulsory
                 # add the validation
                 if member_name and member_email:
+                    # create the member data
+                    member_data = {"family_member_email": member_email, "family_member_name": member_name, "family_member_illness": member_illness, "family_member_other_info": member_other_info}
                     # add to the database
-                    if save_member_information(member_name, member_email, member_illness, member_other_info) and parent_member_table(st.user.sub, st.user.email, member_email):
+                    member_response = insert_data("members", member_data)
+                    # member parent mapping
+                    member_parent_data = {"parent_id": str(st.user.sub), "parent_email": st.user.email, "member_email": member_email}
+                    # add to the database
+                    member_parent_response = insert_data("member_parent", member_parent_data)
+                    if member_response and member_parent_response:
                         st.success("✅ Family member added successfully!")
                         st.balloons()
                     else:
@@ -125,7 +124,7 @@ with parent_tab:
             )
             
             emergency_contact = st.text_input(
-                "Emergency Contact Name & Phone",
+                "Emergency Contact Name & Phone *",
                 placeholder="John Doe - (555) 123-4567",
                 help="Who should we contact in case of emergency?"
             )
@@ -136,8 +135,16 @@ with parent_tab:
             
             if submitted:
                 if parent_name and primary_doctor and contact_email and emergency_contact:
+                    # save to database
+                    user_response = insert_data("users", {
+                        "parent_email": contact_email,
+                        "parent_name": parent_name,
+                        "primary_doctor": primary_doctor,
+                        "other_doctors": other_doctors.replace("\n", ", ") if other_doctors else "",
+                        "emergency_contact": emergency_contact
+                    })
                     # save the records
-                    if save_parent_registration(parent_name, primary_doctor, contact_email, other_doctors, emergency_contact):
+                    if user_response:
                         st.success("✅ Registration submitted successfully!")
                         st.balloons()
                         # wait around for 5 seconds
