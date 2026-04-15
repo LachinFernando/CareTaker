@@ -14,6 +14,7 @@ if not st.user.is_logged_in:
 else:
     if st.button("Log out", use_container_width=True):
         st.logout()
+        st.stop()
     
     # Welcome message
     st.markdown("---")
